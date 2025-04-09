@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1</title>
+    <link rel="stylesheet" href="main.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <div class="container">
+    <div class="input-group">
+        <textarea placeholder="输入你的留言..." rows="3"></textarea>
+        <button class="btn">发布留言</button>
+        <button class="btn clear-all">清空所有留言</button>
+    </div>
+    <div class="message-list"></div>
+    </div>
+
+    <script>
+        $(document).ready(function(){
+            let messages = JSON.parse(localStorage.getItem('messages')) || [];
+
+            function generateId() {
+                return Date.now().toString(36) + Math.random().toString(36).substr(2);
+            }
+
+            const adjectives = ['开心', '神秘', '机智', '温柔', '活泼', '酷炫', '萌萌', '闪耀'];
+            const nouns = ['熊猫', '独角兽', '海豚', '向日葵', '星辰', '猫咪', '企鹅', '彩虹'];
+            const colors = ['#7c3aed', '#3b82f6', '#10b981', '#f59e0b', '#ef4444'];
+            
+            function generateUsername(){
+                const adj=adjectives[Math.floor(Math.random()*adjectives.length)];
+                const noun=nouns[Math.floor(Math.random()*nouns.length)];
+                return `${adj}的${noun}`;
+            }
+            function getRandomColor(){
+                return colors[Math.floor(Math.random()*colors.length)];
+            }
+            function createMessageCard(msg){
+                const time = new Date(msg.time).toLocaleString();
+                const card = $(`
+                    <div class="message-card" data-id="${msg.id}">
+                        <div class="user-info">
+                            <div class="user-avatar" style="background: ${msg.userColor}">${msg.username[0]}</div>
+                            <span class="username">${msg.username}</span>
+                            <span class="message-time">${time}</span>
+                            <button class="delete-btn">删除</button>
+                        </div>
+                        <p class="message-content">${msg.content}</p>
+                    </div>
+                `).hide().fadeIn(300);
+
+                // 绑定删除事件
+                card.find('.delete-btn').click(function() {
+                    if(confirm('确定要删除这条留言吗？')) {
+                        messages = messages.filter(m => m.id !== msg.id);
+                        saveMessages();
+                        card.fadeOut(300, () => card.remove());
+                    }
+                });
+                return card;
+            }
+            function saveMessages() {
+                localStorage.setItem('messages', JSON.stringify(messages));
+            }
+            function addMessage() {
+                const content = $('textarea').val().trim();
+                if(!content) return;
+
+                const newMessage = {
+                    id: generateId(),  // 添加唯一ID
+                    content: content,
+                    username: generateUsername(),
+                    userColor: getRandomColor(),
+                    time: new Date().toISOString()
+                };
+
+                messages.unshift(newMessage);
+                $('.message-list').prepend(createMessageCard(newMessage));
+                $('textarea').val('').focus();
+                saveMessages();
+            }
+
+            $('.clear-all').click(function() {
+                if(confirm('确定要清空所有留言吗？')) {
+                    messages = [];
+                    saveMessages();
+                    $('.message-list').empty();
+                }
+            });
+            function initMessages() {
+                $('.message-list').empty();
+                $.each(messages, function(index, msg) {
+                    $('.message-list').append(createMessageCard(msg));
+                });
+            }
+            $('.btn').on('click', addMessage);
+            $('textarea').on('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    addMessage();
+                }
+            });
+            initMessages();
+        });
+    </script>
+</body>
+</html>
